@@ -174,6 +174,7 @@ package com.pinpoint.radar;
 import android.Manifest;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.ClipData;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -200,6 +201,7 @@ import android.widget.Toast;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -278,10 +280,13 @@ public class MainActivity extends Activity {
             public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
                 fileCallback = callback;
+                // 웹 화면이 원하는 종류(영상·사진)대로, '여러 장 고르기'면 여러 장을 고를 수 있게(사진으로 인물 등록)
+                String[] types = mimeTypes(params == null ? null : params.getAcceptTypes());
                 Intent i = new Intent(Intent.ACTION_GET_CONTENT);
                 i.addCategory(Intent.CATEGORY_OPENABLE);
-                i.setType("*/*");
-                i.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"video/*", "image/*"});
+                i.setType(types.length == 1 ? types[0] : "*/*");
+                if (types.length > 1) i.putExtra(Intent.EXTRA_MIME_TYPES, types);
+                if (params != null && params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE) i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
                 try {
                     startActivityForResult(i, REQ_FILE);
                 } catch (ActivityNotFoundException e) {
@@ -298,6 +303,16 @@ public class MainActivity extends Activity {
         });
 
         web.loadUrl(START);
+    }
+
+    private static String[] mimeTypes(String[] accept) {   // "image/*,video/*" 같은 accept 값 → 종류 목록
+        ArrayList<String> out = new ArrayList<>();
+        if (accept != null) for (String a : accept) {
+            if (a == null) continue;
+            for (String t : a.split(",")) { t = t.trim(); if (t.contains("/")) out.add(t); }
+        }
+        if (out.isEmpty()) { out.add("video/*"); out.add("image/*"); }
+        return out.toArray(new String[0]);
     }
 
     private static String mime(String path) {
@@ -347,7 +362,17 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQ_FILE && fileCallback != null) {
-            fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
+            Uri[] picked = null;
+            if (resultCode == RESULT_OK && data != null) {
+                ClipData clip = data.getClipData();   // 여러 장을 골랐으면 ClipData에 담겨 온다
+                if (clip != null && clip.getItemCount() > 0) {
+                    picked = new Uri[clip.getItemCount()];
+                    for (int k = 0; k < picked.length; k++) picked[k] = clip.getItemAt(k).getUri();
+                } else if (data.getData() != null) {
+                    picked = new Uri[]{data.getData()};
+                }
+            }
+            fileCallback.onReceiveValue(picked);
             fileCallback = null;
             return;
         }
