@@ -603,7 +603,7 @@ details.more .seg{background:var(--well)}
       <div class="field"><span class="label">등록 인물</span>
         <div class="whohead"><img id="edWhoFace" alt="등록된 얼굴"><img id="edWhoBody" alt="등록된 모습"><div><b id="edWhoName"></b><span id="edWhoStat"></span></div></div></div>
       <div class="field"><div class="rangehead"><span class="label">인정 기준(종합 점수)</span><output id="edWhoThrOut">0.70</output></div><input id="edWhoThr" type="range" min="0.50" max="0.90" step="0.01" aria-label="인정 기준">
-        <p class="hint">얼굴이 가까이·정면으로 두 번 이상 확인되고 차이가 0.50 이하면 옷이 달라도 이 사람으로 확정하고, 확실히 다르면 옷이 같아도 제외합니다. 얼굴이 안 보이면 옷차림·체형·걸음 점수를 합쳐 ‘추정’합니다.</p></div>
+        <p class="hint">얼굴이 가까이·정면으로 두 번 이상 확인되고 차이가 0.50 이하면 옷이 달라도 이 사람으로 확정하고, 확실히 다르면 옷이 같아도 제외합니다. 얼굴이 안 보이면 옷차림(모자 포함)·체형 점수를 합쳐 ‘추정’합니다.</p></div>
       <div class="row"><button id="edWhoPhoto" class="btn">사진 추가</button></div>
       <p class="hint">더 정확하게 하려면 화면에서 이 사람을 눌러 ‘추가 등록’하거나 정면 사진을 더 넣으세요. 등록 정보를 지우려면 맨 아래 ‘삭제’를 누르세요.</p>
     </div>
@@ -684,7 +684,7 @@ details.more .seg{background:var(--well)}
       <div class="field"><span class="label">성능 모드</span><div class="seg" id="setMode"><button data-v="light">가볍게</button><button data-v="balanced">균형</button><button data-v="precise">정밀</button></div>
         <p class="hint" id="modeDesc"></p></div>
       <label class="opt"><span><b>움직임 없을 때 쉬기</b><small>화면에 변화가 없으면 AI 탐지를 초당 2번으로 줄여 배터리와 발열을 아낍니다. 움직임이 생기면 바로 원래 속도로 돌아갑니다.</small></span><span class="switch"><input type="checkbox" id="setIdle"><i></i></span></label>
-      <label class="opt"><span><b>자동 성능 조절</b><small>휴대폰이 느려지면 걸음 분석 → 얼굴 확인 순서로 잠시 줄이고 분석 간격을 늘렸다가, 여유가 생기면 되돌립니다. 자세 인식은 모자·옷 색·넘어짐 판정에 꼭 필요해서 끄지 않습니다.</small></span><span class="switch"><input type="checkbox" id="setAuto"><i></i></span></label>
+      <label class="opt"><span><b>자동 성능 조절</b><small>휴대폰이 느려지면 분석 간격을 늘리고 얼굴 확인을 잠시 줄였다가(등록 인물을 찾는 중에는 얼굴 확인 유지) 분석 간격을 늘렸다가, 여유가 생기면 되돌립니다. 자세 인식은 모자·옷 색·넘어짐 판정에 꼭 필요해서 끄지 않습니다.</small></span><span class="switch"><input type="checkbox" id="setAuto"><i></i></span></label>
       <details class="more">
         <summary>세부 설정</summary>
         <div class="field"><span class="label">탐지 모델</span><div class="seg" id="setModel"><button data-v="lite0">빠름 · Lite0</button><button data-v="lite2">정확 · Lite2</button></div>
@@ -699,7 +699,6 @@ details.more .seg{background:var(--well)}
     <div class="group">
       <h3>인물 식별</h3>
       <label class="opt"><span><b>얼굴 인식</b><small>등록 인물을 얼굴로 확인합니다. 얼굴이 클수록 더 믿습니다.</small></span><span class="switch"><input type="checkbox" id="setFace"><i></i></span></label>
-      <label class="opt"><span><b>걸음걸이 분석</b><small>걸음 주기·보폭·팔 흔들림을 잽니다. 2~3초 이상 옆으로 걷는 모습이 필요하고 처리량이 많아 ‘정밀’ 모드에서 켜집니다. 체형(뼈 비율)은 자세 인식만 켜져 있으면 항상 씁니다.</small></span><span class="switch"><input type="checkbox" id="setGait"><i></i></span></label>
       <div class="field"><span class="label">스마트폰 카메라 거리별로 쓰는 단서</span>
         <p class="hint" id="tierGuide"></p></div>
       <p class="hint">얼굴·체형 정보는 이 휴대폰에만 저장되고 밖으로 보내지 않습니다. 등록은 본인 동의를 받은 사람만 하세요.</p>
@@ -731,7 +730,7 @@ details.more .seg{background:var(--well)}
     </div>
     <div class="group">
       <h3>이 앱이 하는 일</h3>
-      <p class="hint">① 감지: EfficientDet(COCO)이 사람·승용차·트럭·버스·오토바이를 찾습니다. ② 추적: 같은 객체에 번호를 붙여 프레임 사이를 이어 줍니다. ③ 속성 판정: 자세 인식으로 몸통·다리·머리 위치와 사람 영역(분할 마스크)을 잡아 배경과 피부를 뺀 색 분포로 상의·하의·차량 색을, 머리 윗부분의 색·피부·머리카락 비율로 모자를 판정합니다. 조명 색은 화면의 무채색 부분으로 보정합니다. 어르신 안전 대상은 몸통 기울기·머리와 골반이 떨어진 거리·속도로 넘어짐을, 관절·화소 변화로 움직임 없음을 판단합니다. 학습 예시가 있으면 생김새 유사도도 비교합니다. 등록 인물은 얼굴 인식, 옷차림 재식별(부위별 생김새·색), 체형·걸음걸이 점수를 합쳐 판단하며, 얼굴이 크게(가까이) 보일 때는 얼굴을 우선합니다. 스마트폰 한 대로 돌리기 위해, 화면 변화가 없으면 탐지를 쉬고, 거리에 따라 쓸 단서를 고르고(가까이 얼굴 · 중간 옷차림·모자 · 멀리 종류·색), 휴대폰이 느려지면 무거운 분석부터 줄입니다. ④ 여러 번 확인: 정한 횟수만큼 연속으로 맞아야 경보합니다. ⑤ 행동: 사이렌·진동·음성·사진 기록·텔레그램 알림. 영상은 휴대폰 안에서만 처리되며 외부로 보내지 않습니다(텔레그램을 켠 경우 경보 사진만 전송).</p>
+      <p class="hint">① 감지: EfficientDet(COCO)이 사람·승용차·트럭·버스·오토바이를 찾습니다. ② 추적: 같은 객체에 번호를 붙여 프레임 사이를 이어 줍니다. ③ 속성 판정: 자세 인식으로 몸통·다리·머리 위치와 사람 영역(분할 마스크)을 잡아 배경과 피부를 뺀 색 분포로 상의·하의·차량 색을, 머리 윗부분의 색·피부·머리카락 비율로 모자를 판정합니다. 조명 색은 화면의 무채색 부분으로 보정합니다. 어르신 안전 대상은 몸통 기울기·머리와 골반이 떨어진 거리·속도로 넘어짐을, 관절·화소 변화로 움직임 없음을 판단합니다. 학습 예시가 있으면 생김새 유사도도 비교합니다. 등록 인물은 얼굴 인식, 옷차림 재식별(부위별 생김새·색), 체형 점수를 합쳐 판단하며, 얼굴이 크게(가까이) 보일 때는 얼굴을 우선합니다. 스마트폰 한 대로 돌리기 위해, 화면 변화가 없으면 탐지를 쉬고, 거리에 따라 쓸 단서를 고르고(가까이 얼굴 · 중간 옷차림·모자 · 멀리 종류·색), 휴대폰이 느려지면 무거운 분석부터 줄입니다. ④ 여러 번 확인: 정한 횟수만큼 연속으로 맞아야 경보합니다. ⑤ 행동: 사이렌·진동·음성·사진 기록·텔레그램 알림. 영상은 휴대폰 안에서만 처리되며 외부로 보내지 않습니다(텔레그램을 켠 경우 경보 사진만 전송).</p>
       <p id="aboutLine" class="hint"></p>
     </div>
   </div>
@@ -784,17 +783,17 @@ const NCOL = COLORS.length, CHROM_MAX = BROWN;   // 0~8: 유채색(갈색 포함
 const HAT_YES = 0.5, HAT_NO = 0.35;
 // 스마트폰 카메라 절충: 원본 영상에서 머리 폭(px)에 따라 쓸 수 있는 단서가 달라진다
 const HAT_MIN = 9;        // 이보다 작으면 모자 판정 안 함
-const FACE_MIN = 24;      // 이보다 작으면 얼굴 인식 안 함
+const FACE_MIN = 18;      // 이보다 작으면 얼굴 인식 안 함
 const FACE_ENROLL = 28;   // 등록할 때 저장할 최소 얼굴 크기
 const FACE_SURE = 36;     // 이 이상이면 얼굴만으로 확정(옷이 달라도 인정 / 옷이 같아도 제외)
 // 성능 모드: 휴대폰 성능·배터리·발열과 정확도 사이의 절충
 const MODES = {
   light:    { label: '가볍게', model: 'lite0', fps: 12, pose: false, face: false, gait: false, res: 720,
-              desc: 'Lite0 · 초당 12회 · 자세 인식 끔(몸 비율로 추정) · 얼굴·걸음 분석 끔 · 720p. 오래된 휴대폰이나 오래 켜 둘 때.' },
+              desc: 'Lite0 · 초당 12회 · 자세 인식 끔(몸 비율로 추정) · 얼굴 분석 끔(등록 인물이 있으면 켜짐) · 720p. 오래된 휴대폰이나 오래 켜 둘 때.' },
   balanced: { label: '균형', model: 'lite0', fps: 20, pose: true, face: true, gait: false, res: 1080,
-              desc: 'Lite0 · 초당 20회 · 자세 인식·체형 · 가까운 얼굴만 확인 · 걸음 분석 끔 · 1080p. 대부분의 휴대폰에 추천.' },
-  precise:  { label: '정밀', model: 'lite2', fps: 24, pose: true, face: true, gait: true, res: 1080,
-              desc: 'Lite2 · 초당 최대 24회 · 자세 인식·체형 · 얼굴 자주 확인 · 걸음걸이 분석 · 1080p(4K는 아래 해상도에서 따로 선택). 사람을 구별할 때. 발열과 배터리 소모가 큽니다.' },
+              desc: 'Lite0 · 초당 20회 · 자세 인식·체형 · 가까운 얼굴만 확인 · 1080p. 대부분의 휴대폰에 추천.' },
+  precise:  { label: '정밀', model: 'lite2', fps: 24, pose: true, face: true, gait: false, res: 1080,
+              desc: 'Lite2 · 초당 최대 24회 · 자세 인식·체형 · 얼굴 자주 확인 · 1080p(4K는 아래 해상도에서 따로 선택). 사람을 구별할 때. 발열과 배터리 소모가 큽니다.' },
 };
 const FALL_CONFIRM = 2000;   // 넘어진 뒤 이 시간 안에 일어나지 않으면 '넘어짐' 확정(ms)
 const POS_KO = { up: '서 있음·앉음', bend: '숙임', lying: '누움' };
@@ -839,9 +838,9 @@ const perf = { det: 0, ana: 0, fps: 0, frames: 0, lastFpsAt: performance.now(), 
 function eff() {
   const lv = S.auto ? perf.level : 0;
   return {
-    pose: S.pose || safetyActive(), face: S.face && lv < 2, gait: S.gaitOn && lv < 1,
-    faceGap: lv ? 1500 : (S.mode === 'precise' ? 600 : 900), lookGap: lv ? 1000 : 650,
-    personGap: (S.gaitOn && lv < 1 && idActive()) ? 150 : (lv >= 2 ? 650 : 320),
+    pose: S.pose || safetyActive(), face: (S.face && lv < 2) || idActive(), gait: false,
+    faceGap: idActive() ? (lv >= 2 ? 1000 : 600) : (lv ? 1500 : 900), lookGap: lv ? 1000 : 650,
+    personGap: lv >= 2 ? 650 : 320,
     anaGap: lv >= 2 ? 650 : 320,
   };
 }
@@ -1785,7 +1784,7 @@ const fcx = FC.getContext('2d');
 let faceBusy = false, faceErrShown = false;
 function maybeFace(t, c, now, force) {
   const enrolling = !!(enroll && enroll.tid === t.id);
-  if (!faceEngine.ready || faceBusy || !c.geom || !(eff().face || (enrolling && S.face))) return;
+  if (!faceEngine.ready || faceBusy || !c.geom || !(eff().face || enrolling)) return;
   if (!force && now - t.faceAt < eff().faceGap) return;
   const h = c.geom.head, hwSrc = h.hw / c.sc;
   if (hwSrc < FACE_MIN) { if (enrolling) enroll.small = true; return; }   // 멀어서 얼굴이 너무 작다
@@ -1805,7 +1804,7 @@ function maybeFace(t, c, now, force) {
     const v = Float32Array.from(res.desc), yaw = res.yaw == null ? null : res.yaw;
     const fq = faceQ(hwSrc, yaw, res.score, faceImgQ(FC, res.box));
     // q: 얼굴 크기(원본 머리 폭 px), yaw: 고개 방향, fq: 화질 점수
-    if (tr) { tr.faces.push({ v, q: hwSrc, yaw, fq }); if (tr.faces.length > 6) tr.faces.shift(); }
+    if (tr) { tr.faces.push({ v, q: hwSrc, yaw, fq }); if (tr.faces.length > 10) tr.faces.shift(); }
     if (enroll && enroll.tid === id) enrollFace(v, hwSrc, yaw, fq);
   }).catch(e => { if (!faceErrShown) { faceErrShown = true; console.warn('얼굴 인식 오류', e); } })
     .finally(() => { faceBusy = false; const tr = tracker.tracks.find(x => x.id === id); if (tr) tr.faceTry = (tr.faceTry || 0) + 1; });
@@ -1860,7 +1859,7 @@ const euclid = (a, b) => { if (!a || !b || a.length !== b.length) return 9; let 
 const relDiff = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i]) / Math.max(Math.abs(b[i]), 0.05); return s / a.length; };
 const vecsOf = list => (list || []).map(vecOf).filter(Boolean);
 const avg = a => a.reduce((s, v) => s + v, 0) / (a.length || 1);
-const ID_W = { face: 0.55, look: 0.30, body: 0.08, gait: 0.07 };   // 단서별 가중치
+const ID_W = { face: 0.55, look: 0.37, body: 0.08 };   // 단서별 가중치
 // 얼굴 비교(신분증 얼굴 인증의 원리를 감시 카메라에 맞게):
 // ① 품질 검사: 가까이(머리 36px+)·정면(고개 각도 작음)·선명·밝기 알맞은 얼굴만 '좋은 얼굴'로 친다
 // ② 여러 장 확인: 좋은 얼굴 2장 이상이 모두 같은 사람 거리 안이어야 확정(한 장면의 우연한 닮음 방지)
@@ -1883,7 +1882,7 @@ function identityScore(t, W) {
   // (같은 옷을 입은 다른 사람을 잘못 알아보는 것을 막는다. 뒤돌아 있거나 멀면 옷차림·체형으로 판단)
   if (eff().face && faceEngine.ready && pf.length && !t.faces.length && t.headPx >= FACE_MIN && (t.faceTry || 0) < 2) return { state: 'wait', cues, fused: null, by: '' };
   let fm = null;
-  if (S.face && t.faces.length && pf.length) {
+  if (t.faces.length && pf.length) {
     fm = faceMatch(t, pf);
     cues.face = { d: fm.d, q: fm.q, n: fm.n, good: fm.nGood, s: clamp((0.76 - fm.d) / 0.30, 0, 1) };
   }
@@ -1893,14 +1892,19 @@ function identityScore(t, W) {
     let s = clamp((avg(ls) - 0.60) / 0.30, 0, 1); const cs = [];
     if (W.col && W.col.top && t.a.topN) cs.push(1 - l1(t.a.top, W.col.top) / 2);
     if (W.col && W.col.bot && t.a.botN) cs.push(1 - l1(t.a.bot, W.col.bot) / 2);
-    if (cs.length) s = 0.6 * s + 0.4 * avg(cs);
+    // 모자: 등록할 때와 모자를 썼는지·모자 색이 같은지도 옷차림 단서에 넣는다
+    if (W.hat && W.hat.on != null && t.a.hatN && (t.a.hat >= HAT_YES || t.a.hat < HAT_NO)) {
+      const on = t.a.hat >= HAT_YES ? 1 : 0; let hs = on === W.hat.on ? 1 : 0;
+      if (hs && on && W.hat.col && t.a.hatColN) hs = 1 - l1(t.a.hatCol, W.hat.col) / 2;
+      cs.push(hs);
+    }
+    if (cs.length) s = 0.5 * s + 0.5 * avg(cs);
     cues.look = { s };
   }
   if (t.body && W.body) cues.body = { s: clamp(1 - relDiff(t.body, W.body) / 0.12, 0, 1) };
-  if (S.gaitOn && t.gait && W.gait) cues.gait = { s: clamp(1 - relDiff(t.gait, W.gait) / 0.20, 0, 1) };
   if (!cues.face && !cues.look) return { state: 'wait', cues, fused: null, by: '' };
   // 얼굴이 작게(멀리) 잡혔을수록 얼굴 점수를 덜 믿는다: 머리 폭 20px → 30%, 36px 이상 → 100%
-  const wt = k => k === 'face' ? ID_W.face * clamp((cues.face.q - 20) / (FACE_SURE - 20), 0.3, 1) : ID_W[k];
+  const wt = k => k === 'face' ? ID_W.face * clamp((cues.face.q - 14) / 16, 0.4, 1) : ID_W[k];
   let sw = 0, ss = 0; for (const k in cues) { sw += wt(k); ss += wt(k) * cues[k].s; }
   const fused = ss / sw;
   // 확정: 좋은 얼굴 2장 이상이 같은 사람 거리(0.45) 안 + 몸에 붙은 얼굴 → 옷이 달라도 인정
@@ -1908,6 +1912,8 @@ function identityScore(t, W) {
   if (fm && fm.nGood >= 2 && fm.dGood <= 0.50 && bodyOK) return { state: 'yes', fused, cues, by: '얼굴' };
   // 화질이 조금 아쉬워도 얼굴 2장 이상이 모두 가깝거나(0.50), 좋은 얼굴 한 장이 아주 가까우면(0.40) 인정
   if (fm && bodyOK && ((fm.n >= 2 && fm.d <= 0.50) || (fm.nGood >= 1 && fm.dGoodMin <= 0.40))) return { state: 'yes', fused, cues, by: '얼굴' };
+  // 멀리서 작게 보이는 얼굴: 한 장은 못 믿지만 3장 이상이 계속 가깝게 나오면 인정
+  if (fm && bodyOK && fm.n >= 3 && fm.d <= 0.53) return { state: 'yes', fused, cues, by: '얼굴' };
   // 제외: 가장 잘 보인 좋은 얼굴마저 확실히 다르면(0.68 이상) 옷이 같아도 다른 사람
   if (fm && fm.nGood >= 1 && fm.dGoodMin >= 0.68) return { state: 'no', fused, cues, by: '얼굴' };
   let state = fused >= W.thr ? 'yes' : 'no';
@@ -1942,33 +1948,38 @@ async function startEnroll(t, name, T) {
     toast('옷차림 비교 모델을 준비하는 중이에요…');
     try { await engine.loadEmbedder(); } catch (e) { toast('모델을 불러오지 못했어요. 인터넷 연결을 확인하세요.'); return; }
   }
-  if (S.face && !faceEngine.ready) faceEngine.load().then(renderAbout).catch(e => { console.warn(e); toast('얼굴 인식 모델을 불러오지 못했어요. 얼굴 없이 등록합니다.', 3500); });
+  if (!faceEngine.ready) faceEngine.load().then(renderAbout).catch(e => { console.warn(e); toast('얼굴 인식 모델을 불러오지 못했어요. 얼굴 없이 등록합니다.', 3500); });
   if (S.pose && !engine.poseReady && engine.loadPose) engine.loadPose().catch(() => {});
   const now = performance.now();
   if (now - t.lastSeen > 800) { toast('대상이 화면에서 사라졌어요'); return; }
   // 신분증 얼굴 인증처럼 안내에 따라: 정면 → 고개 한쪽 → 반대쪽(살아 있는 사람인지 확인 + 여러 각도 얼굴) → 한 바퀴(옷차림 앞·옆·뒤)
-  enroll = { tid: t.id, name, T: T || null, t0: now, until: now + (eff().gait ? 14000 : 12000), minUntil: now + 5000,
-             faces: [], bins: { front: 0, a: 0, b: 0 }, yawSeen: false, phase: 0, phaseAt: now, said: -1,
+  enroll = { tid: t.id, name, T: T || null, t0: now, until: now + 24000, minUntil: now + 5000,
+             faces: [], bins: { front: 0, a: 0, b: 0, far: 0 }, nearPx: 0, yawSeen: false, phase: 0, phaseAt: now, said: -1,
              look: { full: [], upper: [], lower: [] }, lookAt: -1e9, thumb: null, faceThumb: null, small: false };
   toast(`‘${name}’ 등록을 시작해요. 1~2m 앞에서 안내 음성·화면을 따라 주세요.`, 3500);
   enrollSay(enroll);
   renderEnrollBox();
 }
-const EN_SAY = ['카메라를 정면으로 봐 주세요', '고개를 천천히 한쪽으로 돌려 주세요', '이번엔 반대쪽으로 천천히 돌려 주세요'];
-const enrollPrompt = e => e.phase < 3 ? EN_SAY[e.phase] : eff().gait ? '옆으로 천천히 걸어 주세요' : '제자리에서 천천히 한 바퀴 돌아 주세요';
+const EN_SAY = ['카메라를 정면으로 봐 주세요', '고개를 천천히 한쪽으로 돌려 주세요', '이번엔 반대쪽으로 천천히 돌려 주세요', '이제 뒤로 서너 걸음 물러나서 정면을 봐 주세요'];
+const enrollPrompt = e => e.phase < 4 ? EN_SAY[e.phase] : '그 자리에서 천천히 한 바퀴 돌아 주세요';
 function enrollSay(e) {
   if (e.said === e.phase) return; e.said = e.phase;
   if (S.voice && !S.muted) speak(enrollPrompt(e));
 }
 function enrollFace(v, px, yaw, fq) {   // 등록용 얼굴: 크고(28px+) 화질이 괜찮은 것만, 고개 방향별로 나눠 모은다
   const e = enroll;
-  if (px < FACE_ENROLL) { e.small = true; return; }
+  const far = e.phase === 3;   // 멀리서 본 얼굴도 따로 모은다(원거리 식별용)
+  if (px < (far ? FACE_MIN : FACE_ENROLL)) { e.small = true; return; }
   e.small = false;
-  if (fq < 0.25) return;
+  if (fq < (far ? 0.12 : 0.25)) return;
+  if (far) {
+    if ((e.nearPx && px > 0.8 * e.nearPx) || (yaw != null && Math.abs(yaw) > 0.4) || e.bins.far >= 4) return;
+    e.faces.push({ v, yaw }); e.bins.far++; return;
+  }
   if (yaw != null) e.yawSeen = true;
   const bin = yaw == null || Math.abs(yaw) <= 0.22 ? 'front' : yaw <= -0.32 ? 'a' : yaw >= 0.32 ? 'b' : null;
   if (!bin || e.bins[bin] >= (bin === 'front' ? 6 : 3)) return;
-  e.faces.push({ v, yaw }); e.bins[bin]++;
+  e.faces.push({ v, yaw }); e.bins[bin]++; if (bin === 'front') e.nearPx = Math.max(e.nearPx, px);
   if (!e.faceThumb && bin === 'front') e.faceThumb = thumbOf(FC, 72, 72);
 }
 function collectEnroll(t, c, now) {
@@ -1977,7 +1988,7 @@ function collectEnroll(t, c, now) {
   if (engine.embedReady && !t.close && now - e.lookAt >= 450) {   // 몸 일부만 보이면 옷차림은 모으지 않는다
     e.lookAt = now;
     for (const p of LOOK_PARTS) {
-      if (e.look[p].length >= 8) continue;
+      if (e.look[p].length >= (e.phase >= 3 ? 12 : 7)) continue;
       const cv = partCanvas(p, c); if (!cv) continue;
       let v = null; try { v = engine.embedOf(cv); } catch (err) { v = null; }
       if (v) e.look[p].push(v);
@@ -1986,13 +1997,14 @@ function collectEnroll(t, c, now) {
   maybeFace(t, c, now, now - t.faceAt >= 250);
   // 단계 진행. 얼굴 방향을 알 수 없으면(얼굴이 작거나 뒤돌아 있음) 얼굴 단계는 3.5초 뒤 넘어간다
   const go = p => { e.phase = p; e.phaseAt = now; };
-  if (e.phase === 0 && (e.bins.front >= 2 && e.yawSeen ? true : now - e.phaseAt > 3500)) go(e.yawSeen ? 1 : 3);
+  if (e.phase === 0 && (e.bins.front >= 2 && e.yawSeen ? true : now - e.phaseAt > 3500)) go(e.yawSeen ? 1 : 4);
   else if (e.phase === 1 && (e.bins.a || e.bins.b)) go(2);
   else if (e.phase === 2 && e.bins.a && e.bins.b) go(3);
-  else if ((e.phase === 1 || e.phase === 2) && now - e.phaseAt > 4500) go(3);   // 고개를 못 돌리면 넘어감(살아 있는 사람 확인은 ‘–’)
+  else if ((e.phase === 1 || e.phase === 2) && now - e.phaseAt > 4500) go(3);
+  else if (e.phase === 3 && (e.bins.far >= 3 || now - e.phaseAt > 7000)) go(4);   // 멀리서 얼굴 3장 또는 7초   // 고개를 못 돌리면 넘어감(살아 있는 사람 확인은 ‘–’)
   enrollSay(e);
   const nLook = LOOK_PARTS.reduce((s, p) => s + e.look[p].length, 0);
-  const lookDone = e.phase === 3 && now >= e.minUntil && nLook >= 9 && (!e.yawSeen || now - e.phaseAt >= 2500);
+  const lookDone = e.phase === 4 && now >= e.minUntil && nLook >= 9 && (!e.yawSeen || now - e.phaseAt >= 2500);
   if (lookDone || now >= e.until) finishEnroll(t);
 }
 function finishEnroll(t) {
@@ -2002,19 +2014,19 @@ function finishEnroll(t) {
   const pack = (v, yaw) => { const ex = { id: uid(), v: f32ToB64(v) }; if (yaw != null) ex.y = +yaw.toFixed(2); vecCache.set(ex.id, v); return ex; };
   let T = e.T && targets.includes(e.T) ? e.T : null;
   const W = T ? T.who : { name: e.name, face: [], look: { full: [], upper: [], lower: [] }, col: null, body: null, gait: null, thumb: null, faceThumb: null, thr: 0.70 };
-  W.face.push(...e.faces.map(f => pack(f.v, f.yaw))); while (W.face.length > 16) vecCache.delete(W.face.shift().id);
+  W.face.push(...e.faces.map(f => pack(f.v, f.yaw))); while (W.face.length > 24) vecCache.delete(W.face.shift().id);
   if (e.bins.a && e.bins.b) W.live = true;   // 고개를 양쪽으로 돌린 것을 확인 = 사진이 아닌 실제 사람
-  for (const p of LOOK_PARTS) { W.look[p].push(...e.look[p].map(v => pack(v))); while (W.look[p].length > 10) vecCache.delete(W.look[p].shift().id); }
+  for (const p of LOOK_PARTS) { W.look[p].push(...e.look[p].map(v => pack(v))); while (W.look[p].length > 16) vecCache.delete(W.look[p].shift().id); }
   if (t) {
     W.col = { top: t.a.topN ? Array.from(t.a.top) : (W.col && W.col.top) || null, bot: t.a.botN ? Array.from(t.a.bot) : (W.col && W.col.bot) || null };
     if (t.body) W.body = t.body.slice();
-    if (t.gait) W.gait = t.gait.slice();
+    if (t.a.hatN) W.hat = { on: t.a.hat >= HAT_YES ? 1 : t.a.hat < HAT_NO ? 0 : null, col: t.a.hatColN ? Array.from(t.a.hatCol) : null };
   }
   W.thumb = e.thumb || W.thumb; W.faceThumb = e.faceThumb || W.faceThumb;
   if (!T) { T = mkTarget({ kind: 'person', who: W }); targets.push(T); }
   saveTargets(); resetTargetState(T.id); renderStrip(); maybeLoadId();
   const side = e.bins.a + e.bins.b;
-  toast(`‘${W.name}’ 등록 완료 · 얼굴 ${e.faces.length}장(정면 ${e.bins.front}${side ? ` · 옆 ${side}` : ''}) · 실제 사람 확인 ${e.bins.a && e.bins.b ? '✓' : '–'} · 옷차림 ${LOOK_PARTS.reduce((s, p) => s + W.look[p].length, 0)} · 체형 ${W.body ? '✓' : '–'} · 걸음 ${W.gait ? '✓' : '–'}`, 5000);
+  toast(`‘${W.name}’ 등록 완료 · 얼굴 ${e.faces.length}장(정면 ${e.bins.front}${side ? ` · 옆 ${side}` : ''}) · 실제 사람 확인 ${e.bins.a && e.bins.b ? '✓' : '–'} · 옷차림 ${LOOK_PARTS.reduce((s, p) => s + W.look[p].length, 0)} · 체형 ${W.body ? '✓' : '–'} · 멀리서 본 얼굴 ${e.bins.far}장`, 5000);
   if (S.voice && !S.muted) speak('등록을 마쳤어요');
   renderEnrollBox();
 }
@@ -2024,7 +2036,7 @@ function maybeLoadId() {
   if (!engineReady || !idActive()) return;
   if (!engine.embedReady) engine.loadEmbedder().catch(e => console.warn('임베더 로드 실패', e));
   if (S.pose && !engine.poseReady && engine.loadPose) engine.loadPose().catch(() => {});
-  if (S.face && !faceEngine.ready) faceEngine.load().then(renderAbout).catch(e => { console.warn('얼굴 모델 로드 실패', e); toast('얼굴 인식 모델을 불러오지 못했어요. 옷차림·체형으로만 판단합니다.', 3500); });
+  if (!faceEngine.ready) faceEngine.load().then(renderAbout).catch(e => { console.warn('얼굴 모델 로드 실패', e); toast('얼굴 인식 모델을 불러오지 못했어요. 옷차림·체형으로만 판단합니다.', 3500); });
 }
 
 function analyzeTrack(t, now, partial) {
@@ -2504,7 +2516,7 @@ async function onDetectError(e) {
     engineBusy = false;
   }
 }
-const LEVEL_MSG = ['', '휴대폰이 버거워해서 걸음 분석을 잠시 끄고 확인 간격을 늘렸어요', '처리 속도를 위해 얼굴 확인을 잠시 줄이고 분석 간격을 늘렸어요(자세 인식은 유지). 절전 모드가 켜져 있으면 꺼 주세요'];
+const LEVEL_MSG = ['', '휴대폰이 버거워해서 확인 간격을 늘렸어요', '처리 속도를 위해 분석 간격을 더 늘렸어요(자세 인식은 유지). 절전 모드가 켜져 있으면 꺼 주세요'];
 setInterval(() => {
   const now = performance.now(), sec = (now - perf.lastFpsAt) / 1000;
   perf.fps = perf.frames / sec; perf.frames = 0; perf.lastFpsAt = now;
@@ -2834,7 +2846,7 @@ function renderEditor() {
   if (ED.who) {
     const W = ED.who, nl = LOOK_PARTS.reduce((s, p) => s + W.look[p].length, 0), side = W.face.filter(f => f.y != null && Math.abs(f.y) > 0.3).length;
     $('#edWhoName').textContent = W.name;
-    $('#edWhoStat').textContent = `얼굴 ${W.face.length}${side ? `(옆 ${side})` : ''} · 실제 사람 확인 ${W.live ? '✓' : '–'} · 옷차림 ${nl || '– (사진 등록)'} · 체형 ${W.body ? '✓' : '–'} · 걸음 ${W.gait ? `✓ (분당 약 ${Math.round(W.gait[0] * 110)}걸음)` : '–'}`;
+    $('#edWhoStat').textContent = `얼굴 ${W.face.length}${side ? `(옆 ${side})` : ''} · 실제 사람 확인 ${W.live ? '✓' : '–'} · 옷차림 ${nl || '– (사진 등록)'} · 체형 ${W.body ? '✓' : '–'}`;
     const fi = $('#edWhoFace'), bi = $('#edWhoBody');
     if (W.faceThumb) fi.src = W.faceThumb; else fi.removeAttribute('src');
     if (W.thumb) bi.src = W.thumb; else bi.removeAttribute('src');
@@ -2900,9 +2912,9 @@ function renderEnrollBox() {
   }
   if (!t || t.kind !== 'person') { box.innerHTML = ''; return; }
   const g = eff().gait;   // 걸음 분석은 정밀 모드에서만: 모드에 맞게 등록 방법 안내
-  box.innerHTML = `<div class="idbox"><span class="label">인물 등록<small>${g ? '얼굴·옷차림·체형·걸음을 함께 저장' : '얼굴·옷차림·체형을 함께 저장'}</small></span>
+  box.innerHTML = `<div class="idbox"><span class="label">인물 등록<small>${g ? '얼굴·옷차림·체형을 함께 저장' : '얼굴·옷차림·체형을 함께 저장'}</small></span>
     <div class="row"><input id="enName" type="text" maxlength="12" placeholder="이름 (예: 민준)" autocomplete="off" aria-label="등록할 이름"><button id="enStart" class="btn primary" style="flex:none">등록 시작</button></div>
-    <p class="hint">약 10초 동안 음성 안내를 따라 1~2m 앞에서 ① 정면 보기 ② 고개를 한쪽으로 ③ 반대쪽으로 ④ ${g ? '옆으로 천천히 걷기(걸음걸이 저장)' : '제자리에서 한 바퀴 돌기(앞·옆·뒤 옷차림)'}. 신분증 얼굴 인증처럼 고개를 돌려 실제 사람인지 확인하고, 여러 각도 얼굴을 화질 검사 후 저장합니다. 등록은 본인 동의를 받은 사람만 하세요.</p></div>`;
+    <p class="hint">약 20초 동안 음성 안내를 따라 1~2m 앞에서 ① 정면 보기 ② 고개를 한쪽으로 ③ 반대쪽으로 ④ 뒤로 서너 걸음 물러나기(멀리서 본 얼굴·옷차림) ⑤ ${g ? '옆으로 천천히 걷기(걸음걸이 저장)' : '제자리에서 한 바퀴 돌기(앞·옆·뒤 옷차림)'}. 신분증 얼굴 인증처럼 고개를 돌려 실제 사람인지 확인하고, 여러 각도 얼굴을 화질 검사 후 저장합니다. 등록은 본인 동의를 받은 사람만 하세요.</p></div>`;
   $('#enStart').onclick = () => { const tr = tracker.tracks.find(x => x.id === detailId); if (tr) startEnroll(tr, $('#enName').value, null); else toast('대상이 화면에서 사라졌어요'); };
 }
 function updateEnrollBox() {
@@ -2916,8 +2928,8 @@ function updateEnrollBox() {
   $('#enPrompt').textContent = enrollPrompt(e);
   const chip = (label, on) => `<span class="${on ? 'on' : ''}">${on ? '✓ ' : ''}${label}</span>`;
   $('#enBins').innerHTML = (e.yawSeen ? chip(`정면 ${e.bins.front}`, e.bins.front >= 2) + chip('고개 한쪽', e.bins.a + e.bins.b > 0) + chip('반대쪽(실제 사람)', e.bins.a > 0 && e.bins.b > 0)
-    : chip(`얼굴 ${e.faces.length}`, e.faces.length >= 2)) + chip(`옷차림 ${nl}`, nl >= 9) + chip('체형', !!(t && t.body));
-  $('#enStat').textContent = `${smallTxt}걸음 ${gaitTxt} · 최대 ${Math.ceil(left / 1000)}초`;
+    : chip(`얼굴 ${e.faces.length}`, e.faces.length >= 2)) + chip(`멀리서 얼굴 ${e.bins.far}`, e.bins.far >= 2) + chip(`옷차림 ${nl}`, nl >= 9) + chip('체형', !!(t && t.body));
+  $('#enStat').textContent = `${smallTxt}최대 ${Math.ceil(left / 1000)}초`;
   $('#enBar').style.width = `${clamp((now - e.t0) / Math.max(1, e.until - e.t0) * 100, 0, 100)}%`;
 }
 function renderDetail(thumb) {
@@ -2940,7 +2952,7 @@ function renderDetail(thumb) {
     }
     if (idActive()) {
       rows += `<dt>얼굴</dt><dd><span class="hint">${t.faces.length ? `인식됨 · 특징 ${t.faces.length}개` : !S.face ? '꺼짐' : faceEngine.ready ? '안 보이거나 작음' : '모델 준비 중'}</span></dd>`;
-      rows += `<dt>체형·걸음</dt><dd><span class="hint">체형 ${t.body ? '측정됨' : '–'} · 걸음 ${t.gait ? `분당 약 ${Math.round(t.gait[0] * 110)}걸음` : eff().gait ? '걷는 모습 필요' : '분석 끔(정밀 모드)'}</span></dd>`;
+      rows += `<dt>체형</dt><dd><span class="hint">체형 ${t.body ? '측정됨' : '–'}</span></dd>`;
     }
   } else {
     const tot = Object.values(t.votes).reduce((a, b) => a + b, 0) || 1;
@@ -3080,7 +3092,7 @@ $('#phSave').onclick = () => {
   const name = ($('#phName').value || '').trim() || `인물 ${targets.filter(x => x.who).length + 1}`;
   const W = T ? T.who : { name, face: [], look: { full: [], upper: [], lower: [] }, col: null, body: null, gait: null, thumb: null, faceThumb: null, thr: 0.70 };
   for (const it of ok) { const ex = { id: uid(), v: f32ToB64(it.v), p: 1 }; if (it.yaw != null) ex.y = +it.yaw.toFixed(2); vecCache.set(ex.id, it.v); W.face.push(ex); }
-  while (W.face.length > 16) vecCache.delete(W.face.shift().id);
+  while (W.face.length > 24) vecCache.delete(W.face.shift().id);
   if (!W.faceThumb) W.faceThumb = ok[0].thumb;
   if (!T) { T = mkTarget({ kind: 'person', who: W }); targets.push(T); }
   saveTargets(); resetTargetState(T.id); renderStrip(); renderTargetList(); maybeLoadId();
@@ -3161,7 +3173,7 @@ function renderSettings() {
   seg($('#setCool'), S.cooldown, v => { S.cooldown = Number(v); saveSettings(); });
   seg($('#setSound'), S.sound, v => { S.sound = v; saveSettings(); });
   $('#setVoice').checked = S.voice; $('#setVibe').checked = S.vibrate; $('#setApproach').checked = S.approachOnly; $('#setWake').checked = S.wake;
-  $('#setFace').checked = S.face; $('#setGait').checked = S.gaitOn;
+  $('#setFace').checked = S.face;
   $('#tgOn').checked = S.tg.on; $('#tgToken').value = S.tg.token; $('#tgChat').value = S.tg.chat; $('#tgPhoto').checked = S.tg.photo;
   renderAbout();
 }
@@ -3171,7 +3183,6 @@ function renderAbout() {
   $('#idLine').textContent = `등록 인물 ${nWho}명 · 얼굴 모델 ${faceEngine.ready ? '준비됨' : idActive() && S.face ? '불러오는 중' : '등록 인물이 있으면 불러옴'}`;
 }
 $('#setFace').onchange = e => { S.face = e.target.checked; markCustom(); maybeLoadId(); renderAbout(); };
-$('#setGait').onchange = e => { S.gaitOn = e.target.checked; markCustom(); };
 $('#setIdle').onchange = e => { S.idle = e.target.checked; saveSettings(); };
 $('#setAuto').onchange = e => { S.auto = e.target.checked; if (!S.auto) { perf.level = 0; perf.low = perf.ok = 0; } saveSettings(); };
 $('#setThr').oninput = e => { S.detThr = Number(e.target.value); $('#setThrOut').textContent = S.detThr.toFixed(2); };
