@@ -480,6 +480,7 @@ details.more .seg{background:var(--well)}
   <span id="status" class="pill" role="status"><i></i>준비 중</span>
   <span class="spacer"></span>
   <button id="btnTorch" class="icon" aria-label="손전등" aria-pressed="false" hidden><svg class="i"><use href="#i-torch"/></svg></button>
+  <button id="btnEnroll" class="btn" style="flex:none;padding:6px 12px;font-size:13px" aria-label="카메라로 인물 등록">인물 등록</button>
   <button id="btnFlip" class="icon" aria-label="앞뒤 카메라 전환"><svg class="i"><use href="#i-flip"/></svg></button>
   <button id="btnFile" class="icon" aria-label="영상이나 사진으로 시험하기"><svg class="i"><use href="#i-film"/></svg></button>
   <button id="btnMute" class="icon" aria-label="소리 끄기" aria-pressed="false"><svg class="i"><use id="muteUse" href="#i-sound"/></svg></button>
@@ -584,6 +585,7 @@ details.more .seg{background:var(--well)}
     <div class="field"><p class="hint">켜 둔 대상 중 하나라도 보이면 경보가 울려요.</p><ul id="targetList" class="tlist"></ul></div>
     <div class="field"><h3 class="label">빠른 추가</h3><div id="presetRow" class="presets"></div></div>
     <div class="row"><button id="btnNewTarget" class="btn">조건 직접 만들기</button><button id="btnPhotoWho" class="btn">사진으로 인물 등록</button></div>
+    <div class="row"><button id="btnLiveWho" class="btn primary">카메라로 인물 등록 (인물 1, 인물 2 …)</button></div>
     <p class="hint">특정 인물은 화면에서 그 사람을 눌러 등록하거나(가장 정확), 얼굴이 잘 나온 사진으로 등록하세요.</p>
   </div>
 </section>
@@ -839,7 +841,7 @@ function eff() {
   const lv = S.auto ? perf.level : 0;
   return {
     pose: S.pose || safetyActive(), face: (S.face && lv < 2) || idActive(), gait: false,
-    faceGap: idActive() ? (lv >= 2 ? 1000 : 600) : (lv ? 1500 : 900), lookGap: lv ? 1000 : 650,
+    faceGap: idActive() ? [800, 1300, 2000][lv] : (lv ? 1500 : 900), lookGap: lv ? 1000 : 650,
     personGap: lv >= 2 ? 650 : 320,
     anaGap: lv >= 2 ? 650 : 320,
   };
@@ -1231,7 +1233,8 @@ class MPEngine {
       baseOptions: { modelAssetPath: MODEL_URLS[modelKey][delegate], delegate },
       runningMode: 'VIDEO', scoreThreshold: thr, maxResults: 30, categoryAllowlist: Object.keys(CLASSES),
     });
-    let delegate = force || 'GPU', det;
+    let slowGpu = false; try { slowGpu = localStorage.getItem('pinpoint.cpu') === '1'; } catch (e) { /* 무시 */ }
+    let delegate = force || (slowGpu ? 'CPU' : 'GPU'), det;   // 이 폰에서 GPU 탐지가 느렸던 적이 있으면 처음부터 CPU
     try { det = await make(delegate); }
     catch (e) { if (delegate === 'CPU') throw e; console.warn('GPU 사용 불가 → CPU', e); delegate = 'CPU'; det = await make('CPU'); }
     const old = this.det;
@@ -1522,16 +1525,17 @@ function resetAppearance(t) {   // 추적 번호가 다른 객체로 넘어간 �
 // 사람 확인(2단계): 탐지기는 작고 빨라서 옷걸이에 걸린 옷, 코트 걸이 같은 '사람 모양 물체'를 사람으로 볼 때가 있다.
 // 자세 인식이 사람 골격을 3번 연속 못 찾고, 처음 자리에서 거의 움직이지 않았다면 사람이 아닌 것으로 보고 숨긴다.
 // 움직이거나 골격이 두 번 이상 잡히면 다시 사람으로 본다(자세 인식이 꺼져 있으면 이 단계는 쉰다)
-const personOK = t => !(eff().pose && engine.poseReady && poseFail < 5) || (t.poseHit || 0) >= 1 || (t.shift || 0) >= 0.12 || !!(t.sf && t.sf.everMoved);
+const personOK = t => !(eff().pose && engine.poseReady && poseFail < 5) || (t.poseHit || 0) >= 1 || (t.shift || 0) >= 0.12 || !!(t.sf && t.sf.everMoved) || !!(t.faces && t.faces.length);
 function notPerson(t, c) {
   const b = t.box, cx = b.x + b.w / 2, cy = b.y + b.h / 2;
   if (!t.c0) t.c0 = { x: cx, y: cy };
   t.shift = Math.max(t.shift || 0, Math.hypot(cx - t.c0.x, cy - t.c0.y) / Math.max(b.h, 1));
   if (!(eff().pose && engine.poseReady && poseFail < 5)) return (t.fake = false);
   const lm = c.lm, vis = i => (lm[i].visibility == null ? 1 : lm[i].visibility);
-  if (lm && (vis(0) + vis(11) + vis(12) + vis(23) + vis(24)) / 5 >= 0.4) { t.poseHit = (t.poseHit || 0) + 1; t.poseMiss = 0; }
+  // 온몸이 아니어도 된다: 셀카·책상 앞처럼 상체만 보여도(코+양 어깨) 사람으로 인정
+    if (lm && ((vis(0) + vis(11) + vis(12) + vis(23) + vis(24)) / 5 >= 0.4 || (vis(0) + vis(11) + vis(12)) / 3 >= 0.5)) { t.poseHit = (t.poseHit || 0) + 1; t.poseMiss = 0; }
   else t.poseMiss = (t.poseMiss || 0) + 1;
-  t.fake = (t.poseHit || 0) < 2 && t.poseMiss >= 3 && t.shift < 0.12 && !(t.sf && t.sf.everMoved);
+  t.fake = (t.poseHit || 0) < 1 && t.poseMiss >= 5 && t.shift < 0.12 && !(t.sf && t.sf.everMoved) && !(t.faces && t.faces.length);   // 얼굴이 잡힌 적 있으면 사람
   return t.fake;
 }
 function analyzePerson(t, c, now, partial) {
@@ -1737,7 +1741,7 @@ const faceEngine = window.PINPOINT_TEST_FACE || {
       await fa.nets.tinyFaceDetector.loadFromUri(M);
       await fa.nets.faceLandmark68Net.loadFromUri(M);
       await fa.nets.faceRecognitionNet.loadFromUri(M);
-      this.api = fa; this.opts = new fa.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.35 });
+      this.api = fa; this.opts = new fa.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.35 });
       this.optsPhoto = new fa.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 }); this.ready = true;
     })().catch(e => { this.p = null; throw e; });
     return this.p;
@@ -1807,7 +1811,8 @@ function maybeFace(t, c, now, force) {
     if (tr) { tr.faces.push({ v, q: hwSrc, yaw, fq }); if (tr.faces.length > 10) tr.faces.shift(); }
     if (enroll && enroll.tid === id) enrollFace(v, hwSrc, yaw, fq);
   }).catch(e => { if (!faceErrShown) { faceErrShown = true; console.warn('얼굴 인식 오류', e); } })
-    .finally(() => { faceBusy = false; const tr = tracker.tracks.find(x => x.id === id); if (tr) tr.faceTry = (tr.faceTry || 0) + 1; });
+    .finally(() => { faceBusy = false; step._rest = Math.max(step._rest || 0, performance.now() + 200);   // 얼굴 계산 뒤에는 화면 조작이 먼저
+      const tr = tracker.tracks.find(x => x.id === id); if (tr) tr.faceTry = (tr.faceTry || 0) + 1; });
 }
 // 체형: 자세 인식의 3D 관절(미터)로 뼈 길이 비율을 잰다 → 보는 방향이 바뀌어도 비교적 일정
 function bodyRatios(W) {
@@ -1964,6 +1969,7 @@ const EN_SAY = ['카메라를 정면으로 봐 주세요', '고개를 천천히 
 const enrollPrompt = e => e.phase < 4 ? EN_SAY[e.phase] : '그 자리에서 천천히 한 바퀴 돌아 주세요';
 function enrollSay(e) {
   if (e.said === e.phase) return; e.said = e.phase;
+  toast(`‘${e.name}’ 등록 중 · ${enrollPrompt(e)}`, 4000);
   if (S.voice && !S.muted) speak(enrollPrompt(e));
 }
 function enrollFace(v, px, yaw, fq) {   // 등록용 얼굴: 크고(28px+) 화질이 괜찮은 것만, 고개 방향별로 나눠 모은다
@@ -2346,7 +2352,7 @@ async function startCamera(facing) {
   let stream;
   try {
     // 4K·1080p: 같은 거리에서 얼굴·색이 더 또렷(S25 기본 카메라는 4K 30fps 가능) / 720p: 가볍다. 안 되면 가능한 가장 가까운 화질
-    const [w, h] = { 720: [1280, 720], 1080: [1920, 1080], 2160: [3840, 2160] }[S.res] || [1920, 1080];
+    const [w, h] = facing === 'user' ? [1280, 720] : ({ 720: [1280, 720], 1080: [1920, 1080], 2160: [3840, 2160] }[S.res] || [1920, 1080]);   // 셀카는 가까워서 720p면 충분(가볍게)
     stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: facing }, width: { ideal: w }, height: { ideal: h }, frameRate: { ideal: 30 } } });
   } catch (e) {
     if (e && (e.name === 'OverconstrainedError' || e.name === 'ConstraintNotSatisfiedError')) stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
@@ -2493,6 +2499,11 @@ function step() {
   } catch (e) { onDetectError(e); return; }
   const dt = performance.now() - t0;
   perf.det = perf.det ? perf.det * 0.85 + dt * 0.15 : dt;
+  // GPU 탐지가 한 번에 0.15초 넘게 걸리는 일이 이어지면(앱 속 브라우저에서 화면이 멈추는 원인) CPU 탐지로 바꾼다
+  if (engine.delegate === 'GPU' && engine.createDetector && !engineBusy) {
+    step._slow = dt > 150 ? (step._slow || 0) + 1 : Math.max(0, (step._slow || 0) - 1);
+    if (step._slow >= 5) { step._slow = 0; useCpuDetector(); }
+  }
   tracker.update(dets, now);
   runAnalysis(now);
   if (ghosts.length) ghostStep(now);
@@ -2505,7 +2516,13 @@ function step() {
   if (S.armed) checkAlarms(now);
   perf.frames++;
   // 한 번 처리에 40ms 넘게 걸렸으면 그 절반(최대 0.25초)만큼 쉰다: 휴대폰이 버거울 때도 '감시 중지' 같은 버튼이 바로 눌리게
-  const took = performance.now() - now; step._rest = took > 40 ? performance.now() + Math.min(250, took * 0.5) : 0;
+  const took = performance.now() - now; step._rest = Math.max(step._rest || 0, took > 30 ? performance.now() + Math.min(400, took) : 0);
+}
+async function useCpuDetector() {
+  engineBusy = true;
+  try { await engine.createDetector(S.model === 'lite2' ? 'lite0' : S.model, S.detThr, 'CPU'); try { localStorage.setItem('pinpoint.cpu', '1'); } catch (e) { /* 무시 */ } toast('GPU 탐지가 느려서 CPU 탐지로 바꿨어요. 버튼 반응이 좋아져요', 4000); }
+  catch (e2) { console.warn('CPU 전환 실패', e2); }
+  engineBusy = false;
 }
 async function onDetectError(e) {
   console.error('탐지 오류', e);
@@ -2523,7 +2540,7 @@ setInterval(() => {
   // 자동 성능 조절: 추적이 끊기지 않으려면 초당 8회 이상은 처리해야 한다.
   // 8회 미만이 3초 이어지면 한 단계 줄이고, 여유(초당 14회 이상)가 15초 이어지면 되돌린다
   if (S.auto && engineReady && SRC.el && SRC.type !== 'image' && !perf.idleSec && !engineBusy) {
-    if (perf.fps < 8) { perf.low++; perf.ok = 0; } else if (perf.fps >= Math.min(14, S.fps * 0.9)) { perf.ok++; perf.low = 0; } else { perf.low = 0; perf.ok = 0; }
+    if (performance.now() - (perf.touchAt || 0) < 2500) { /* 화면을 만지는 중에는 속도를 재지 않는다 */ } else if (perf.fps < 8) { perf.low++; perf.ok = 0; } else if (perf.fps >= Math.min(14, S.fps * 0.9)) { perf.ok++; perf.low = 0; } else { perf.low = 0; perf.ok = 0; }
     if (perf.low >= 3 && perf.level < 2) { perf.level++; perf.low = 0; toast(LEVEL_MSG[perf.level], 3500); }
     else if (perf.ok >= 15 && perf.level > 0) { perf.level--; perf.ok = 0; }
   }
@@ -3069,6 +3086,25 @@ function crossCheck() {   // 모든 사진이 같은 사람인지(+ 이미 등�
   }
 }
 $('#btnPhotoWho').onclick = () => openPhotoEnroll(null);
+// 카메라로 바로 인물 등록: 화면에서 가장 크게 보이는 사람을 자동으로 골라 '인물 N'으로 등록한다
+let enrollPending = 0;
+function liveEnroll() {
+  unlockAudio(); closeSheets(true);
+  if (!SRC.el) { toast('먼저 카메라를 켜 주세요'); return; }
+  if (enroll) { toast('지금 등록하는 중이에요. 안내를 따라 주세요'); return; }
+  enrollPending = performance.now() + 15000;
+  toast('등록할 사람 한 명만 카메라 1~2m 앞에 서 주세요', 3500);
+}
+setInterval(() => {
+  if (!enrollPending || enroll) return;
+  const now = performance.now();
+  const ps = tracker.tracks.filter(t => t.kind === 'person' && !t.fake && now - t.lastSeen < 500 && t.analyses >= 1).sort((a, b) => b.box.w * b.box.h - a.box.w * a.box.h);
+  if (ps.length) { enrollPending = 0; startEnroll(ps[0], '', null); }
+  else if (now > enrollPending) { enrollPending = 0; toast('사람을 찾지 못했어요. 몸이 화면에 보이게 서서 다시 눌러 주세요', 4000); }
+}, 300);
+$('#btnEnroll').onclick = liveEnroll; $('#btnLiveWho').onclick = liveEnroll;
+// 화면을 만지는 동안은 무거운 분석을 잠깐 멈춰 버튼이 바로 먹히게 한다
+for (const ev of ['pointerdown', 'touchstart']) window.addEventListener(ev, () => { const n = performance.now(); if (n - (perf.touchAt || 0) > 900) step._rest = n + 350; perf.touchAt = n; }, { capture: true, passive: true });   // 1초에 한 번, 0.35초만
 $('#phPick').onclick = () => { if (!PH.busy) $('#phFile').click(); };
 $('#phFile').onchange = async e => {
   const files = [...(e.target.files || [])].slice(0, 8); e.target.value = '';
@@ -3297,8 +3333,10 @@ function doArm() {
 function disarm() {
   S.armed = false; stopSound(); $('#banner').hidden = true; clearTimeout(bannerTimer); haptic(15); toast('감시를 멈췄어요'); renderStatus();
 }
+let armTapAt = 0;
 $('#btnArm').onclick = () => {
   unlockAudio();
+  const tapAt = performance.now(); if (tapAt - armTapAt < 900 && perf.fps > 0 && perf.fps < 6) return; armTapAt = tapAt;   // 늦게 반응해 여러 번 눌러도 한 번만 처리(껐다가 다시 켜지는 것 방지)
   if (cd) { cancelCountdown(); return; }
   if (S.armed) { disarm(); return; }
   if (!SRC.el) { toast('먼저 카메라를 켜 주세요'); $('#intro').hidden = false; return; }
