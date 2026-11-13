@@ -691,8 +691,8 @@ details.more .seg{background:var(--well)}
         <summary>세부 설정</summary>
         <div class="field"><span class="label">탐지 모델</span><div class="seg" id="setModel"><button data-v="lite0">빠름 · Lite0</button><button data-v="lite2">정확 · Lite2</button></div>
           <p class="hint">정확 모델은 멀리 있거나 작은 대상을 더 잘 찾지만 느립니다.</p></div>
-        <div class="field"><span class="label">카메라 해상도</span><div class="seg" id="setRes"><button data-v="720">720p</button><button data-v="1080">1080p</button><button data-v="2160">4K</button></div>
-          <p class="hint">해상도가 높을수록 같은 거리에서 얼굴·옷 색을 더 또렷하게 잡습니다. 4K는 갤럭시 S25 같은 최신 폰에서 얼굴을 약 2배 멀리까지 알아보지만, 앱에서는 무거워 느려지고 발열이 늘어요. 느리면 1080p로 두세요. 사람·차 찾기는 작게 줄인 화면으로 하므로 해상도를 올려도 탐지 속도는 거의 그대로입니다.</p></div>
+        <div class="field"><span class="label">카메라 해상도</span><div class="seg" id="setRes"><button data-v="720">720p</button><button data-v="1080">1080p</button></div>
+          <p class="hint">해상도가 높을수록 같은 거리에서 얼굴·옷 색을 더 또렷하게 잡습니다. 느리면 720p로 낮추세요. 사람·차 찾기는 작게 줄인 화면으로 하므로 해상도를 올려도 탐지 속도는 거의 그대로입니다.</p></div>
         <div class="field"><div class="rangehead"><span class="label">탐지 기준 점수</span><output id="setThrOut">0.40</output></div><input id="setThr" type="range" min="0.20" max="0.70" step="0.05" aria-label="탐지 기준 점수">
           <p class="hint">낮추면 더 많이 찾지만 잘못 찾는 경우도 늘어납니다.</p></div>
         <label class="opt"><span><b>자세 인식</b><small>어깨·골반 위치로 상의·하의·머리를 정확히 잡고 체형을 잽니다. 끄면 몸 비율로 추정해 빨라집니다.</small></span><span class="switch"><input type="checkbox" id="setPose"><i></i></span></label>
@@ -795,7 +795,7 @@ const MODES = {
   balanced: { label: '균형', model: 'lite0', fps: 20, pose: true, face: true, gait: false, res: 1080,
               desc: 'Lite0 · 초당 20회 · 자세 인식·체형 · 가까운 얼굴만 확인 · 1080p. 대부분의 휴대폰에 추천.' },
   precise:  { label: '정밀', model: 'lite2', fps: 24, pose: true, face: true, gait: false, res: 1080,
-              desc: 'Lite2 · 초당 최대 24회 · 자세 인식·체형 · 얼굴 자주 확인 · 1080p(4K는 아래 해상도에서 따로 선택). 사람을 구별할 때. 발열과 배터리 소모가 큽니다.' },
+              desc: 'Lite2 · 초당 최대 24회 · 자세 인식·체형 · 얼굴 자주 확인 · 1080p. 사람을 구별할 때. 발열과 배터리 소모가 큽니다.' },
 };
 const FALL_CONFIRM = 2000;   // 넘어진 뒤 이 시간 안에 일어나지 않으면 '넘어짐' 확정(ms)
 const POS_KO = { up: '서 있음·앉음', bend: '숙임', lying: '누움' };
@@ -832,6 +832,8 @@ if (!savedS.mode) Object.assign(S, modeProfile('balanced'), { mode: 'balanced' }
 S.tg = Object.assign({}, DEFAULTS.tg, S.tg || {});
 S.armed = false;
 delete S.saver;
+if (S.res > 1080) S.res = 1080;   // 4K는 앱 속 브라우저에서 화면이 멈추는 원인이라 뺐다
+S.gaitOn = false;
 function saveSettings() { const { armed, ...rest } = S; store.set('settings', rest); }
 function modeProfile(m) { const P = MODES[m]; return { model: P.model, fps: P.fps, res: P.res, pose: P.pose, face: P.face, gaitOn: P.gait }; }
 // 실제 적용값: 고른 모드 + 자동 성능 조절 단계(0: 그대로, 1: 걸음 분석 끄고 간격 늘림, 2: 얼굴 확인도 줄이고 간격을 더 늘림)
@@ -1958,7 +1960,7 @@ async function startEnroll(t, name, T) {
   const now = performance.now();
   if (now - t.lastSeen > 800) { toast('대상이 화면에서 사라졌어요'); return; }
   // 신분증 얼굴 인증처럼 안내에 따라: 정면 → 고개 한쪽 → 반대쪽(살아 있는 사람인지 확인 + 여러 각도 얼굴) → 한 바퀴(옷차림 앞·옆·뒤)
-  enroll = { tid: t.id, name, T: T || null, t0: now, until: now + 24000, minUntil: now + 5000,
+  enroll = { tid: t.id, name, T: T || null, t0: now, until: now + 18000, minUntil: now + 5000,
              faces: [], bins: { front: 0, a: 0, b: 0, far: 0 }, nearPx: 0, yawSeen: false, phase: 0, phaseAt: now, said: -1,
              look: { full: [], upper: [], lower: [] }, lookAt: -1e9, thumb: null, faceThumb: null, small: false };
   toast(`‘${name}’ 등록을 시작해요. 1~2m 앞에서 안내 음성·화면을 따라 주세요.`, 3500);
@@ -2006,17 +2008,17 @@ function collectEnroll(t, c, now) {
   if (e.phase === 0 && (e.bins.front >= 2 && e.yawSeen ? true : now - e.phaseAt > 3500)) go(e.yawSeen ? 1 : 4);
   else if (e.phase === 1 && (e.bins.a || e.bins.b)) go(2);
   else if (e.phase === 2 && e.bins.a && e.bins.b) go(3);
-  else if ((e.phase === 1 || e.phase === 2) && now - e.phaseAt > 4500) go(3);
-  else if (e.phase === 3 && (e.bins.far >= 3 || now - e.phaseAt > 7000)) go(4);   // 멀리서 얼굴 3장 또는 7초   // 고개를 못 돌리면 넘어감(살아 있는 사람 확인은 ‘–’)
+  else if ((e.phase === 1 || e.phase === 2) && now - e.phaseAt > 3000) go(3);
+  else if (e.phase === 3 && (e.bins.far >= 3 || now - e.phaseAt > 5000)) go(4);   // 멀리서 얼굴 3장 또는 7초   // 고개를 못 돌리면 넘어감(살아 있는 사람 확인은 ‘–’)
   enrollSay(e);
   const nLook = LOOK_PARTS.reduce((s, p) => s + e.look[p].length, 0);
-  const lookDone = e.phase === 4 && now >= e.minUntil && nLook >= 9 && (!e.yawSeen || now - e.phaseAt >= 2500);
+  const lookDone = e.phase === 4 && now >= e.minUntil && ((nLook >= 9 && now - e.phaseAt >= 2000) || now - e.phaseAt >= 3500);   // 한 바퀴 단계는 최대 3.5초
   if (lookDone || now >= e.until) finishEnroll(t);
 }
 function finishEnroll(t) {
   const e = enroll; enroll = null; if (!e) return;
   const nLook = LOOK_PARTS.reduce((s, p) => s + e.look[p].length, 0);
-  if (nLook < 3 && !e.faces.length) { toast('정보를 충분히 모으지 못했어요. 사람이 화면에 크게 보일 때 다시 시도하세요.', 3500); renderEnrollBox(); return; }
+  if (nLook < 3 && !e.faces.length) { toast(`등록 실패: 얼굴을 한 장도 못 모았어요${e.small ? '(얼굴이 너무 작아요)' : ''}. 밝은 곳에서 얼굴과 어깨가 보이게 1~2m 앞에 서서 다시 눌러 주세요.`, 6000); if (S.voice && !S.muted) speak('등록하지 못했어요. 다시 시도해 주세요'); renderEnrollBox(); return; }
   const pack = (v, yaw) => { const ex = { id: uid(), v: f32ToB64(v) }; if (yaw != null) ex.y = +yaw.toFixed(2); vecCache.set(ex.id, v); return ex; };
   let T = e.T && targets.includes(e.T) ? e.T : null;
   const W = T ? T.who : { name: e.name, face: [], look: { full: [], upper: [], lower: [] }, col: null, body: null, gait: null, thumb: null, faceThumb: null, thr: 0.70 };
@@ -2049,7 +2051,8 @@ function analyzeTrack(t, now, partial) {
   const c = makeCrop(t.box); if (!c) return;
   if (t.kind === 'person') analyzePerson(t, c, now, partial); else analyzeVehicle(t, c);
   t.analyses++; t.lastAnalysis = now;
-  if (partial || t.fake) return;   // 화면 끝에 잘렸으면 자세(안전)만 본다, 사람 모양 물체는 더 보지 않는다
+  const mine = !!(enroll && enroll.tid === t.id);   // 등록 중인 사람은 화면 끝에 걸쳐도 계속 모은다
+  if ((partial || t.fake) && !mine) return;   // 화면 끝에 잘렸으면 자세(안전)만 본다, 사람 모양 물체는 더 보지 않는다
   if (!t.close) maybeEmbed(t, c, now);   // 너무 가까우면 옷차림 비교는 건너뛰고 얼굴은 본다(등록은 1~2m 앞에서)
   if (t.kind === 'person' && idActive()) {
     if (enroll && enroll.tid === t.id) collectEnroll(t, c, now);
@@ -2440,6 +2443,15 @@ function startLoop() {
   next();
 }
 function stopLoop() { loopGen++; }
+// 카메라 영상이 멎어 처리가 4초 넘게 멈추면 스스로 되살린다(영상 프레임이 안 오면 분석도 멈추므로)
+setInterval(() => {
+  if (SRC.type !== 'camera' || !SRC.el || !engineReady || engineBusy || document.hidden || !lastStepAt) return;
+  if (performance.now() - Math.max(lastStepAt, step._rest || 0) < 4000) return;
+  lastStepAt = performance.now();
+  const tr = SRC.stream && SRC.stream.getVideoTracks()[0];
+  if (!tr || tr.readyState === 'ended' || SRC.el.paused) startCamera(SRC.facing).catch(e => toast(camErrorMsg(e), 4000));
+  else startLoop();
+}, 2000);
 // 움직임 감지(아주 작은 흑백 화면 비교): 변화가 없으면 무거운 AI 탐지를 쉬게 한다 — 기준 앱의 모션 감지 + AI 판별
 const MC = document.createElement('canvas'), mcx = MC.getContext('2d', { willReadFrequently: true });
 let prevLum = null, lastMotionAt = -1e9, wbFirst = true;
@@ -2508,9 +2520,13 @@ function step() {
   runAnalysis(now);
   if (ghosts.length) ghostStep(now);
   if (enroll) {   // 등록 중인 사람이 사라졌거나, 5초 넘게 모은 뒤 화면 밖으로 나가는 중이거나, 시간이 지났으면 모은 것까지로 마무리
-    const et = tracker.tracks.find(x => x.id === enroll.tid);
-    const leaving = et && now - enroll.t0 >= 5000 && edgeCut(et.box);
-    if (!et || leaving || now > enroll.until + 1500) finishEnroll(et || enroll.tref || null);
+    let et = tracker.tracks.find(x => x.id === enroll.tid);
+    if (!et) {   // 움직이다 추적이 끊기면 가장 크게 보이는 사람으로 이어서 등록(3초 넘게 아무도 없으면 마무리)
+      const lb = enroll.lastBox, near = x => lb && Math.hypot(x.box.x + x.box.w / 2 - lb.x - lb.w / 2, x.box.y + x.box.h / 2 - lb.y - lb.h / 2) < 0.8 * Math.max(lb.w, lb.h);   // 같은 자리에 다시 잡힌 사람만(지나가는 다른 사람 제외)
+      const c = tracker.tracks.filter(x => x.kind === 'person' && now - x.lastSeen < 500 && near(x)).sort((a, b) => b.box.w * b.box.h - a.box.w * a.box.h)[0];
+      if (c) { enroll.tid = c.id; et = c; enroll.lostAt = 0; } else if (!enroll.lostAt) enroll.lostAt = now;
+    } else { enroll.lostAt = 0; enroll.lastBox = Object.assign({}, et.box); }
+    if ((!et && now - enroll.lostAt > 2000) || now > enroll.until + 500) finishEnroll(et || enroll.tref || null);
   }
   updateMatches(now);
   if (S.armed) checkAlarms(now);
@@ -2788,7 +2804,7 @@ function condTags(T) {
   if (T.kind === 'person') {
     if (T.who) {
       const W = T.who, nl = LOOK_PARTS.reduce((s, p) => s + W.look[p].length, 0);
-      tags.push(`<span class="tag">얼굴 ${W.face.length}</span>${nl ? `<span class="tag">옷차림 ${nl}</span>` : '<span class="tag">사진 등록</span>'}${W.live ? '<span class="tag">실제 사람 확인</span>' : ''}${W.body ? '<span class="tag">체형</span>' : ''}${W.gait ? '<span class="tag">걸음</span>' : ''}`);
+      tags.push(`<span class="tag">얼굴 ${W.face.length}</span>${nl ? `<span class="tag">옷차림 ${nl}</span>` : '<span class="tag">사진 등록</span>'}${W.live ? '<span class="tag">실제 사람 확인</span>' : ''}${W.body ? '<span class="tag">체형</span>' : ''}`);
     }
     if (T.hat !== 'any') tags.push(`<span class="tag">모자 ${T.hat === 'yes' ? '씀' : '안 씀'}</span>`);
     col('모자', T.hat === 'yes' ? T.hatColor : []); col('상의', T.top); col('하의', T.bottom);
@@ -2929,9 +2945,9 @@ function renderEnrollBox() {
   }
   if (!t || t.kind !== 'person') { box.innerHTML = ''; return; }
   const g = eff().gait;   // 걸음 분석은 정밀 모드에서만: 모드에 맞게 등록 방법 안내
-  box.innerHTML = `<div class="idbox"><span class="label">인물 등록<small>${g ? '얼굴·옷차림·체형을 함께 저장' : '얼굴·옷차림·체형을 함께 저장'}</small></span>
+  box.innerHTML = `<div class="idbox"><span class="label">인물 등록<small>얼굴·옷차림·체형을 함께 저장</small></span>
     <div class="row"><input id="enName" type="text" maxlength="12" placeholder="이름 (예: 민준)" autocomplete="off" aria-label="등록할 이름"><button id="enStart" class="btn primary" style="flex:none">등록 시작</button></div>
-    <p class="hint">약 20초 동안 음성 안내를 따라 1~2m 앞에서 ① 정면 보기 ② 고개를 한쪽으로 ③ 반대쪽으로 ④ 뒤로 서너 걸음 물러나기(멀리서 본 얼굴·옷차림) ⑤ ${g ? '옆으로 천천히 걷기(걸음걸이 저장)' : '제자리에서 한 바퀴 돌기(앞·옆·뒤 옷차림)'}. 신분증 얼굴 인증처럼 고개를 돌려 실제 사람인지 확인하고, 여러 각도 얼굴을 화질 검사 후 저장합니다. 등록은 본인 동의를 받은 사람만 하세요.</p></div>`;
+    <p class="hint">약 15초 동안 음성 안내를 따라 1~2m 앞에서 ① 정면 보기 ② 고개를 한쪽으로 ③ 반대쪽으로 ④ 뒤로 서너 걸음 물러나기(멀리서 본 얼굴·옷차림) ⑤ 제자리에서 한 바퀴 돌기(앞·옆·뒤 옷차림). 신분증 얼굴 인증처럼 고개를 돌려 실제 사람인지 확인하고, 여러 각도 얼굴을 화질 검사 후 저장합니다. 등록은 본인 동의를 받은 사람만 하세요.</p></div>`;
   $('#enStart').onclick = () => { const tr = tracker.tracks.find(x => x.id === detailId); if (tr) startEnroll(tr, $('#enName').value, null); else toast('대상이 화면에서 사라졌어요'); };
 }
 function updateEnrollBox() {
@@ -3102,6 +3118,7 @@ setInterval(() => {
   if (ps.length) { enrollPending = 0; startEnroll(ps[0], '', null); }
   else if (now > enrollPending) { enrollPending = 0; toast('사람을 찾지 못했어요. 몸이 화면에 보이게 서서 다시 눌러 주세요', 4000); }
 }, 300);
+setInterval(() => { if (enroll && performance.now() > enroll.until + 2500) finishEnroll(tracker.tracks.find(x => x.id === enroll.tid) || enroll.tref || null); }, 500);
 $('#btnEnroll').onclick = liveEnroll; $('#btnLiveWho').onclick = liveEnroll;
 // 화면을 만지는 동안은 무거운 분석을 잠깐 멈춰 버튼이 바로 먹히게 한다
 for (const ev of ['pointerdown', 'touchstart']) window.addEventListener(ev, () => { const n = performance.now(); if (n - (perf.touchAt || 0) > 900) step._rest = n + 350; perf.touchAt = n; }, { capture: true, passive: true });   // 1초에 한 번, 0.35초만
