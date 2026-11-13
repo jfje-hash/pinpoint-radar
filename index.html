@@ -1520,16 +1520,33 @@ function resetAppearance(t) {   // 추적 번호가 다른 객체로 넘어간 �
   a.top.fill(0); a.bot.fill(0); a.body.fill(0); a.hatCol.fill(0); t.tm = {}; t.emb = {};
   t.faces = []; t.faceTry = 0; t.bodyS = []; t.body = null; t.gs = []; t.gait = null;
 }
+// 사람 확인(2단계): 탐지기는 작고 빨라서 옷걸이에 걸린 옷, 코트 걸이 같은 '사람 모양 물체'를 사람으로 볼 때가 있다.
+// 자세 인식이 사람 골격을 3번 연속 못 찾고, 처음 자리에서 거의 움직이지 않았다면 사람이 아닌 것으로 보고 숨긴다.
+// 움직이거나 골격이 두 번 이상 잡히면 다시 사람으로 본다(자세 인식이 꺼져 있으면 이 단계는 쉰다)
+const personOK = t => !(eff().pose && engine.poseReady && poseFail < 5) || (t.poseHit || 0) >= 1 || (t.shift || 0) >= 0.12 || !!(t.sf && t.sf.everMoved);
+function notPerson(t, c) {
+  const b = t.box, cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+  if (!t.c0) t.c0 = { x: cx, y: cy };
+  t.shift = Math.max(t.shift || 0, Math.hypot(cx - t.c0.x, cy - t.c0.y) / Math.max(b.h, 1));
+  if (!(eff().pose && engine.poseReady && poseFail < 5)) return (t.fake = false);
+  const lm = c.lm, vis = i => (lm[i].visibility == null ? 1 : lm[i].visibility);
+  if (lm && (vis(0) + vis(11) + vis(12) + vis(23) + vis(24)) / 5 >= 0.4) { t.poseHit = (t.poseHit || 0) + 1; t.poseMiss = 0; }
+  else t.poseMiss = (t.poseMiss || 0) + 1;
+  t.fake = (t.poseHit || 0) < 2 && t.poseMiss >= 3 && t.shift < 0.12 && !(t.sf && t.sf.everMoved);
+  return t.fake;
+}
 function analyzePerson(t, c, now, partial) {
   const g = personGeom(c); c.geom = g;
   t.headPx = g.head.hw / c.sc;   // 원본 영상에서 머리 폭(px) → 거리 단계 판단
   t.a.pose = g.src === 'pose';
+  if (notPerson(t, c)) return;   // 옷걸이의 옷·코트 걸이처럼 사람 모양인 물체
   const cur = postureOf(t, c, now); t.posture = cur.pos;
   if (safetyActive()) updateSafety(t, c, cur, now);
   // 화면 끝에 잘렸거나, 너무 가깝거나(손·몸 일부), 누워 있으면 옷·모자 위치를 믿을 수 없어 판단하지 않는다.
   // 화면에 크게 잡혔는데 자세 인식이 사람 골격을 못 찾으면(손·물건을 사람으로 잘못 본 경우)도 '너무 가까움'으로 본다
-  const big = t.box.h >= 0.4 * SRC.h || t.box.w >= 0.4 * SRC.w;
-  t.close = tooClose(t.box) || (big && eff().pose && engine.poseReady && poseFail < 5 && !c.lm);
+  // 단, 가까워도 머리가 화면 안에 다 들어 있고 자세 인식이 몸통·머리를 잡았으면(사람이 확실) 판단한다
+  const big = t.box.h >= 0.4 * SRC.h || t.box.w >= 0.4 * SRC.w, headCut = t.box.y <= SRC.h * 0.012;
+  t.close = (tooClose(t.box) && (headCut || g.src !== 'pose')) || (big && eff().pose && engine.poseReady && poseFail < 5 && !c.lm);
   if (partial || t.close || cur.pos === 'lying') return;
   if (c.world && idActive() && g.src === 'pose') updateBodyGait(t, c.world, now);
   const skin = faceSkin(c.img, g.head);
@@ -1547,7 +1564,6 @@ function analyzePerson(t, c, now, partial) {
   }
   // 모자: 원본에서 머리 폭이 충분하고, 머리 윗부분이 화면 위에 잘리지 않았고, 머리 위치를 믿을 수 있을 때만
   // (자세 인식으로 머리를 찾았거나, 몸 비율로 추정했어도 그 자리에서 얼굴색을 확인한 경우)
-  const headCut = t.box.y <= SRC.h * 0.012;
   if (t.headPx >= HAT_MIN && !headCut && (g.src === 'pose' || skin)) {
     const hat = analyzeHead(c, g.head, skin);
     if (hat) {
@@ -2013,7 +2029,7 @@ function analyzeTrack(t, now, partial) {
   const c = makeCrop(t.box); if (!c) return;
   if (t.kind === 'person') analyzePerson(t, c, now, partial); else analyzeVehicle(t, c);
   t.analyses++; t.lastAnalysis = now;
-  if (partial) return;   // 화면 끝에 잘렸으면 자세(안전)만 본다
+  if (partial || t.fake) return;   // 화면 끝에 잘렸으면 자세(안전)만 본다, 사람 모양 물체는 더 보지 않는다
   if (!t.close) maybeEmbed(t, c, now);   // 너무 가까우면 옷차림 비교는 건너뛰고 얼굴은 본다(등록은 1~2m 앞에서)
   if (t.kind === 'person' && idActive()) {
     if (enroll && enroll.tid === t.id) collectEnroll(t, c, now);
@@ -2029,7 +2045,7 @@ function runAnalysis(now) {
   // (어르신 안전 대상이 켜져 있으면 잘린 사람도 자세만은 본다: 화면 끝에서 넘어질 수도 있다)
   const cut = t => edgeCut(t.box), safe = safetyActive();
   // 등록 인물을 찾는 중이면 걸음 주기를 잡기 위해 사람을 더 자주(0.15초마다) 분석
-  const E = eff(), gap = t => t.kind === 'person' ? E.personGap : E.anaGap;
+  const E = eff(), gap = t => t.fake ? 2000 : t.kind === 'person' ? E.personGap : E.anaGap;
   const cands = tracker.tracks.filter(t => t.lastSeen === now && t.hits >= 2 && (!cut(t) || (safe && t.kind === 'person')) && (t.analyses === 0 || now - t.lastAnalysis >= gap(t)));
   cands.sort((a, b) => (a.analyses ? a.lastAnalysis : -1e12) - (b.analyses ? b.lastAnalysis : -1e12));
   let n = 0;
@@ -2096,10 +2112,12 @@ function evalTarget(t, T) {
 }
 function updateMatches(now) {
   for (const t of tracker.tracks) {
-    if (t.lastSeen !== now || t.hits < 2) continue;
+    if (t.lastSeen !== now || t.hits < 2 || t.fake) continue;
     for (const T of targets) {
       if (!T.on || T.kind !== t.kind) continue;
       const st = t.tm[T.id] || (t.tm[T.id] = { streak: 0, seen: -1, matched: false, last: 'wait' });
+      // 사람 확인 전(골격을 아직 못 봤고 움직이지도 않음)에는 경보를 미룬다: 옷걸이의 옷 같은 물체가 먼저 울리지 않게
+      if (t.kind === 'person' && !personOK(t)) { st.matched = false; st.streak = 0; st.last = 'wait'; continue; }
       if (T.ev) {   // 안전 대상은 자체 확인 시간(넘어짐 2초 · 정지 시간)이 있어 바로 판정
         const r = evalTarget(t, T); st.last = r.state; st.matched = r.state === 'yes';
       } else if (targetNeedsAnalysis(T)) {
@@ -2126,7 +2144,7 @@ function inZone(t) {
 const coolOf = T => (T.ev ? Math.max(S.cooldown, 60) : S.cooldown) * 1000;
 function checkAlarms(now) {
   for (const t of tracker.tracks) {
-    if (t.hits < 2 || now - t.lastSeen > 300) continue;
+    if (t.hits < 2 || now - t.lastSeen > 300 || t.fake) continue;
     for (const T of targets) {
       if (!T.on || T.kind !== t.kind) continue;
       const st = t.tm[T.id]; if (!st || !st.matched) continue;
@@ -2418,6 +2436,21 @@ function motionCheck(now) {
 }
 // 탐지기 입력: 큰 영상(1080p·4K)은 GPU에서 960px로 줄여 넘긴다(탐지 모델 입력은 어차피 320~448px). 속도·발열 개선
 const DI = document.createElement('canvas'), dix = DI.getContext('2d', { alpha: false });
+// 같은 사람의 몸 일부(어깨·팔)를 탐지기가 한 번 더 잡은 작은 상자는 버린다:
+// 더 큰 사람 상자 안에 80% 넘게 들어 있고 넓이가 그 40%도 안 되면 같은 사람의 일부로 본다
+function dropParts(dets) {
+  const ps = dets.filter(d => d.label === 'person');
+  if (ps.length < 2) return dets;
+  return dets.filter(d => {
+    if (d.label !== 'person') return true;
+    const a = d.w * d.h;
+    return !ps.some(o => {
+      if (o === d || o.w * o.h * 0.4 <= a) return false;
+      const ix = Math.max(0, Math.min(d.x + d.w, o.x + o.w) - Math.max(d.x, o.x)), iy = Math.max(0, Math.min(d.y + d.h, o.y + o.h) - Math.max(d.y, o.y));
+      return ix * iy >= 0.8 * a;
+    });
+  });
+}
 function detInput() {
   const L = Math.max(SRC.w, SRC.h);
   if (SRC.type === 'image' || L <= 1024 || !dix) return { el: SRC.el, s: 1 };
@@ -2430,7 +2463,7 @@ function step() {
   if (!engineReady || engineBusy || !SRC.el || !SRC.w || !SRC.h) return;
   const now = performance.now();
   if ((SRC.type !== 'image' || wbFirst) && now - (step._m || 0) >= 90) { step._m = now; try { motionCheck(now); } catch (e) { lastMotionAt = now; } }
-  const busy = SRC.type === 'image' || !S.idle || !!enroll || now - lastMotionAt < 1500 || tracker.tracks.some(t => now - t.lastSeen < 2000);
+  const busy = SRC.type === 'image' || !S.idle || !!enroll || now - lastMotionAt < 1500 || tracker.tracks.some(t => !t.fake && now - t.lastSeen < 2000);
   perf.idle = !busy; if (!busy) perf.idleSec = true;
   if (now - lastStepAt < (busy ? 1000 / S.fps : 500) - 3) return;   // 쉬는 중에는 초당 2번만 탐지
   lastStepAt = now;
@@ -2441,6 +2474,7 @@ function step() {
   try {
     const inp = detInput(); dets = engine.detect(inp.el, t);
     if (inp.s !== 1) for (const d of dets) { d.x /= inp.s; d.y /= inp.s; d.w /= inp.s; d.h /= inp.s; }   // 원본 좌표로
+    dets = dropParts(dets);
   } catch (e) { onDetectError(e); return; }
   const dt = performance.now() - t0;
   perf.det = perf.det ? perf.det * 0.85 + dt * 0.15 : dt;
@@ -2560,7 +2594,7 @@ function draw() {
   }
   // 객체: 흰 테 = 보이는 객체, 노랑 = 확인 중, 빨강 = 대상(처음 찾으면 바깥에서 조여 드는 '잠금')
   for (const t of tracker.tracks) {
-    if (t.hits < 2 || now - t.lastSeen > 350) continue;
+    if (t.hits < 2 || now - t.lastSeen > 350 || t.fake) continue;
     const b0 = boxToView(m, t.box), v = trackVisual(t);
     const outZone = v.state === 'match' && S.zoneOn && S.zone && !inZone(t), armedHit = v.state === 'match' && S.armed && !outZone;
     if (v.state === 'match') { if (!t.lockAt) t.lockAt = now; } else t.lockAt = 0;
@@ -2618,7 +2652,7 @@ function drawArmScope() {
   g.beginPath(); g.moveTo(ax, ay); g.lineTo(ax + R * Math.sin(sw), ay - R * Math.cos(sw)); g.stroke();
   if (!SRC.w || !SRC.h) return;
   for (const t of tracker.tracks) {
-    if (t.hits < 2 || now - t.lastSeen > 500) continue;
+    if (t.hits < 2 || now - t.lastSeen > 500 || t.fake) continue;
     let fx = (t.box.x + t.box.w / 2) / SRC.w - 0.5; if (SRC.mirrored) fx = -fx;
     const ang = clamp(fx * 2, -1, 1) * A * 0.9, rr = R * clamp(1.02 - (t.box.h / SRC.h) * 1.1, 0.16, 0.94);
     const x = ax + rr * Math.sin(ang), y = ay - rr * Math.cos(ang), st = trackVisual(t).state, r = st === 'match' ? 6.5 : 4.5;
@@ -2836,7 +2870,7 @@ function trackAt(vx, vy) {
   const m = viewMap(); if (!m) return null;
   const now = performance.now(); let best = null, area = Infinity;
   for (const t of tracker.tracks) {
-    if (t.hits < 2 || now - t.lastSeen > 600) continue;
+    if (t.hits < 2 || now - t.lastSeen > 600 || t.fake) continue;
     const b = boxToView(m, t.box), p = 10;
     if (vx >= b.x - p && vx <= b.x + b.w + p && vy >= b.y - p && vy <= b.y + b.h + p && b.w * b.h < area) { area = b.w * b.h; best = t; }
   }
