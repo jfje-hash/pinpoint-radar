@@ -690,7 +690,7 @@ details.more .seg{background:var(--well)}
         <div class="field"><span class="label">탐지 모델</span><div class="seg" id="setModel"><button data-v="lite0">빠름 · Lite0</button><button data-v="lite2">정확 · Lite2</button></div>
           <p class="hint">정확 모델은 멀리 있거나 작은 대상을 더 잘 찾지만 느립니다.</p></div>
         <div class="field"><span class="label">카메라 해상도</span><div class="seg" id="setRes"><button data-v="720">720p</button><button data-v="1080">1080p</button><button data-v="2160">4K</button></div>
-          <p class="hint">해상도가 높을수록 같은 거리에서 얼굴·옷 색을 더 또렷하게 잡습니다. 4K는 갤럭시 S25 같은 최신 폰에서 얼굴을 약 2배 멀리까지 알아보지만 발열이 늘어요. 사람·차 찾기는 작게 줄인 화면으로 하므로 해상도를 올려도 탐지 속도는 거의 그대로입니다.</p></div>
+          <p class="hint">해상도가 높을수록 같은 거리에서 얼굴·옷 색을 더 또렷하게 잡습니다. 4K는 갤럭시 S25 같은 최신 폰에서 얼굴을 약 2배 멀리까지 알아보지만, 앱에서는 무거워 느려지고 발열이 늘어요. 느리면 1080p로 두세요. 사람·차 찾기는 작게 줄인 화면으로 하므로 해상도를 올려도 탐지 속도는 거의 그대로입니다.</p></div>
         <div class="field"><div class="rangehead"><span class="label">탐지 기준 점수</span><output id="setThrOut">0.40</output></div><input id="setThr" type="range" min="0.20" max="0.70" step="0.05" aria-label="탐지 기준 점수">
           <p class="hint">낮추면 더 많이 찾지만 잘못 찾는 경우도 늘어납니다.</p></div>
         <label class="opt"><span><b>자세 인식</b><small>어깨·골반 위치로 상의·하의·머리를 정확히 잡고 체형을 잽니다. 끄면 몸 비율로 추정해 빨라집니다.</small></span><span class="switch"><input type="checkbox" id="setPose"><i></i></span></label>
@@ -793,8 +793,8 @@ const MODES = {
               desc: 'Lite0 · 초당 12회 · 자세 인식 끔(몸 비율로 추정) · 얼굴·걸음 분석 끔 · 720p. 오래된 휴대폰이나 오래 켜 둘 때.' },
   balanced: { label: '균형', model: 'lite0', fps: 20, pose: true, face: true, gait: false, res: 1080,
               desc: 'Lite0 · 초당 20회 · 자세 인식·체형 · 가까운 얼굴만 확인 · 걸음 분석 끔 · 1080p. 대부분의 휴대폰에 추천.' },
-  precise:  { label: '정밀', model: 'lite2', fps: 24, pose: true, face: true, gait: true, res: 2160,
-              desc: 'Lite2 · 초당 최대 24회 · 자세 인식·체형 · 얼굴 자주 확인 · 걸음걸이 분석 · 4K(안 되면 가능한 최고 화질). 갤럭시 S25 같은 최신 휴대폰에서 사람을 구별할 때. 발열과 배터리 소모가 큽니다.' },
+  precise:  { label: '정밀', model: 'lite2', fps: 24, pose: true, face: true, gait: true, res: 1080,
+              desc: 'Lite2 · 초당 최대 24회 · 자세 인식·체형 · 얼굴 자주 확인 · 걸음걸이 분석 · 1080p(4K는 아래 해상도에서 따로 선택). 사람을 구별할 때. 발열과 배터리 소모가 큽니다.' },
 };
 const FALL_CONFIRM = 2000;   // 넘어진 뒤 이 시간 안에 일어나지 않으면 '넘어짐' 확정(ms)
 const POS_KO = { up: '서 있음·앉음', bend: '숙임', lying: '누움' };
@@ -2462,6 +2462,7 @@ function detInput() {
 function step() {
   if (!engineReady || engineBusy || !SRC.el || !SRC.w || !SRC.h) return;
   const now = performance.now();
+  if (now < (step._rest || 0)) return;   // 앞 처리가 무거웠으면 잠깐 쉬어 화면 조작(버튼)이 먹히게 한다
   if ((SRC.type !== 'image' || wbFirst) && now - (step._m || 0) >= 90) { step._m = now; try { motionCheck(now); } catch (e) { lastMotionAt = now; } }
   const busy = SRC.type === 'image' || !S.idle || !!enroll || now - lastMotionAt < 1500 || tracker.tracks.some(t => !t.fake && now - t.lastSeen < 2000);
   perf.idle = !busy; if (!busy) perf.idleSec = true;
@@ -2489,6 +2490,8 @@ function step() {
   updateMatches(now);
   if (S.armed) checkAlarms(now);
   perf.frames++;
+  // 한 번 처리에 40ms 넘게 걸렸으면 그 절반(최대 0.25초)만큼 쉰다: 휴대폰이 버거울 때도 '감시 중지' 같은 버튼이 바로 눌리게
+  const took = performance.now() - now; step._rest = took > 40 ? performance.now() + Math.min(250, took * 0.5) : 0;
 }
 async function onDetectError(e) {
   console.error('탐지 오류', e);
